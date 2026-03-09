@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../db/client.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
@@ -8,7 +8,7 @@ import { BookingStatus } from '@prisma/client';
 const router = Router();
 
 // Get user's bookings
-router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
+router.get('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
       throw new ApiError(401, 'Unauthorized');
@@ -69,7 +69,7 @@ router.post(
     body('scheduledAt').isISO8601().withMessage('Invalid date format'),
     body('duration').isInt({ min: 30 }).withMessage('Duration must be at least 30 minutes'),
   ],
-  async (req: AuthRequest, res: Response, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -130,7 +130,7 @@ router.post(
 );
 
 // Update booking status
-router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next) => {
+router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
       throw new ApiError(401, 'Unauthorized');
@@ -175,7 +175,7 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next)
 });
 
 // Cancel booking
-router.delete('/:id', authenticate, async (req: AuthRequest, res: Response, next) => {
+router.delete('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
       throw new ApiError(401, 'Unauthorized');

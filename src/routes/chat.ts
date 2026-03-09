@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../db/client.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
@@ -14,7 +14,7 @@ router.post(
   [
     body('message').notEmpty().withMessage('Message is required'),
   ],
-  async (req: AuthRequest, res: Response, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -50,7 +50,7 @@ router.post(
       const preferences = await aiMatchingService.extractPreferences(message);
 
       // Get recommendations if preferences found
-      let recommendations = [];
+      let recommendations: any[] = [];
       if (Object.keys(preferences).length > 0) {
         const scores = await aiMatchingService.getRecommendations(companions, preferences);
         recommendations = scores.slice(0, 3).map(s => {
@@ -93,7 +93,7 @@ router.post(
 );
 
 // Get messages with a companion
-router.get('/messages/:companionId', authenticate, async (req: AuthRequest, res: Response, next) => {
+router.get('/messages/:companionId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
       throw new ApiError(401, 'Unauthorized');
@@ -125,7 +125,7 @@ router.post(
     body('companionId').notEmpty().withMessage('Companion ID is required'),
     body('content').notEmpty().withMessage('Content is required'),
   ],
-  async (req: AuthRequest, res: Response, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {

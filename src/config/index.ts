@@ -11,8 +11,8 @@ export const config = {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   },
   
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY || '',
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY || '',
   },
   
   stripe: {

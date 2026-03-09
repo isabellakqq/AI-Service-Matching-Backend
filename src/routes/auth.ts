@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../db/client.js';
 import { hashPassword, comparePassword } from '../utils/password.js';
@@ -16,7 +16,7 @@ router.post(
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
     body('name').notEmpty().withMessage('Name is required'),
   ],
-  async (req: Request, res: Response, next) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -80,7 +80,7 @@ router.post(
     body('email').isEmail().withMessage('Invalid email'),
     body('password').notEmpty().withMessage('Password is required'),
   ],
-  async (req: Request, res: Response, next) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -130,7 +130,7 @@ router.post(
 );
 
 // Get current user
-router.get('/me', authenticate, async (req: AuthRequest, res: Response, next) => {
+router.get('/me', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
       throw new ApiError(401, 'Unauthorized');

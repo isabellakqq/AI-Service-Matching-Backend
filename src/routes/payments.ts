@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import Stripe from 'stripe';
 import { body, validationResult } from 'express-validator';
 import prisma from '../db/client.js';
@@ -6,9 +6,7 @@ import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { ApiError } from '../middleware/errorHandler.js';
 import { config } from '../config/index.js';
 
-const stripe = new Stripe(config.stripe.secretKey, {
-  apiVersion: '2024-11-20.acacia',
-});
+const stripe = new Stripe(config.stripe.secretKey);
 
 const router = Router();
 
@@ -19,7 +17,7 @@ router.post(
   [
     body('bookingId').notEmpty().withMessage('Booking ID is required'),
   ],
-  async (req: AuthRequest, res: Response, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -160,7 +158,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
 });
 
 // Get payment status
-router.get('/:bookingId', authenticate, async (req: AuthRequest, res: Response, next) => {
+router.get('/:bookingId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
       throw new ApiError(401, 'Unauthorized');

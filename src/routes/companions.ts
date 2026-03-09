@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { query } from 'express-validator';
 import prisma from '../db/client.js';
 import { ApiError } from '../middleware/errorHandler.js';
@@ -6,7 +6,7 @@ import { ApiError } from '../middleware/errorHandler.js';
 const router = Router();
 
 // Get all companions
-router.get('/', async (req: Request, res: Response, next) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { search, minRating, maxPrice, activity } = req.query;
 
@@ -75,7 +75,7 @@ router.get('/', async (req: Request, res: Response, next) => {
 });
 
 // Get companion by ID
-router.get('/:id', async (req: Request, res: Response, next) => {
+router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 
@@ -142,7 +142,7 @@ router.get('/:id', async (req: Request, res: Response, next) => {
 });
 
 // Get companion availability
-router.get('/:id/availability', async (req: Request, res: Response, next) => {
+router.get('/:id/availability', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 

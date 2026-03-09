@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../db/client.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
@@ -7,7 +7,7 @@ import { ApiError } from '../middleware/errorHandler.js';
 const router = Router();
 
 // Get reviews for a companion
-router.get('/:companionId', async (req, res: Response, next) => {
+router.get('/:companionId', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { companionId } = req.params;
 
@@ -48,7 +48,7 @@ router.post(
     body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
     body('comment').optional().isString(),
   ],
-  async (req: AuthRequest, res: Response, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {

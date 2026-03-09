@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import prisma from '../db/client.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { ApiError } from '../middleware/errorHandler.js';
@@ -7,7 +7,7 @@ import { body, validationResult } from 'express-validator';
 const router = Router();
 
 // Get user profile
-router.get('/profile', authenticate, async (req: AuthRequest, res: Response, next) => {
+router.get('/profile', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
       throw new ApiError(401, 'Unauthorized');
@@ -15,9 +15,6 @@ router.get('/profile', authenticate, async (req: AuthRequest, res: Response, nex
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      include: {
-        preferences: true,
-      },
       select: {
         id: true,
         email: true,
@@ -49,7 +46,7 @@ router.patch(
     body('phone').optional().isString(),
     body('avatar').optional().isURL(),
   ],
-  async (req: AuthRequest, res: Response, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -98,7 +95,7 @@ router.put(
     body('preferredActivities').optional().isArray(),
     body('budgetRange').optional().isString(),
   ],
-  async (req: AuthRequest, res: Response, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
