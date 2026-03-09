@@ -1,0 +1,215 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  COMPANION
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum MessageType {
+  TEXT
+  SYSTEM
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  name          String
+  phone         String?
+  avatar        String?
+  role          UserRole  @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  bookings      Booking[]
+  reviews       Review[]
+  messages      Message[]
+  payments      Payment[]
+  preferences   UserPreference?
+  
+  @@map("users")
+}
+
+model Companion {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  password          String
+  name              String
+  title             String
+  description       String
+  avatar            String?
+  location          String
+  bio               String?
+  price             Float     // Per session
+  rating            Float     @default(0)
+  reviewCount       Int       @default(0)
+  rebookRate        Float     @default(0) // 0-100
+  responseTime      String    @default("< 1 hour")
+  sessionsCompleted Int       @default(0)
+  memberSince       DateTime  @default(now())
+  verified          Boolean   @default(false)
+  active            Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  activities        CompanionActivity[]
+  availability      CompanionAvailability[]
+  bookings          Booking[]
+  reviews           Review[]
+  messages          Message[]
+  matchingProfile   CompanionMatchingProfile?
+  
+  @@map("companions")
+}
+
+model CompanionActivity {
+  id          String     @id @default(uuid())
+  companionId String
+  name        String
+  category    String
+  
+  companion   Companion  @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  
+  @@map("companion_activities")
+}
+
+model CompanionAvailability {
+  id          String     @id @default(uuid())
+  companionId String
+  dayOfWeek   Int        // 0-6 (Sunday-Saturday)
+  startTime   String     // HH:mm format
+  endTime     String     // HH:mm format
+  
+  companion   Companion  @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  
+  @@map("companion_availability")
+}
+
+model CompanionMatchingProfile {
+  id              String    @id @default(uuid())
+  companionId     String    @unique
+  personality     String[]  // ["relaxed", "energetic", "thoughtful", etc.]
+  interests       String[]  // ["golf", "coffee", "reading", etc.]
+  conversationStyle String[]// ["listener", "storyteller", "balanced"]
+  ageRange        String    // "25-35"
+  preferredTimes  String[]  // ["morning", "afternoon", "evening"]
+  
+  companion       Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  
+  @@map("companion_matching_profiles")
+}
+
+model UserPreference {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  interests         String[]
+  personality       String[]
+  preferredTimes    String[]
+  preferredActivities String[]
+  budgetRange       String?  // "30-50"
+  
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_preferences")
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  userId        String
+  companionId   String
+  status        BookingStatus @default(PENDING)
+  activity      String
+  location      String?
+  scheduledAt   DateTime
+  duration      Int           // minutes
+  price         Float
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companion     Companion     @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  payment       Payment?
+  
+  @@map("bookings")
+}
+
+model Review {
+  id          String    @id @default(uuid())
+  userId      String
+  companionId String
+  bookingId   String?
+  rating      Int       // 1-5
+  comment     String?
+  helpful     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  
+  @@map("reviews")
+}
+
+model Message {
+  id          String      @id @default(uuid())
+  senderId    String?     // null for AI messages
+  receiverId  String?     // null for AI messages
+  companionId String?     // if message is with a companion
+  content     String
+  type        MessageType @default(TEXT)
+  isAI        Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  
+  sender      User?       @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  companion   Companion?  @relation(fields: [companionId], references: [id], onDelete: SetNull)
+  
+  @@map("messages")
+}
+
+model Payment {
+  id              String    @id @default(uuid())
+  userId          String
+  bookingId       String    @unique
+  amount          Float
+  currency        String    @default("usd")
+  stripePaymentId String?
+  status          String    // "pending", "succeeded", "failed"
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  booking         Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  @@map("payments")
+}
+
+model ChatSession {
+  id          String    @id @default(uuid())
+  userId      String
+  context     String?   // JSON string of conversation context
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("chat_sessions")
+}
