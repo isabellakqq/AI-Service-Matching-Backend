@@ -1,5 +1,4 @@
 [phases.setup]
-nixPkgs = ["openssl"]
 aptPkgs = ["openssl", "libssl-dev", "ca-certificates"]
 
 [phases.install]
