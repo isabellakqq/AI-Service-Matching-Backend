@@ -5,7 +5,7 @@ aptPkgs = ["openssl", "libssl-dev", "ca-certificates"]
 cmds = ["npm ci"]
 
 [phases.build]
-cmds = ["npx prisma generate", "npm run build"]
+cmds = ["npx prisma generate", "npm run build", "ls -la dist/"]
 
 [start]
-cmd = "node dist/server.js"
+cmd = "npx prisma generate && npm run build && node dist/server.js"
