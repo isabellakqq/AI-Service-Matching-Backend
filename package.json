@@ -10,7 +10,8 @@
     "start": "node dist/server.js",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "db:seed": "tsx src/db/seed.ts"
+    "db:seed": "tsx src/db/seed.ts",
+    "postinstall": "prisma generate"
   },
   "keywords": [
     "ai",
@@ -30,7 +31,9 @@
     "express-validator": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "stripe": "^16.8.0",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "prisma": "^6.19.2",
+    "typescript": "^5.5.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -39,8 +42,9 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.14.15",
     "@types/ws": "^8.5.12",
-    "prisma": "^6.19.2",
-    "tsx": "^4.17.0",
-    "typescript": "^5.5.4"
+    "tsx": "^4.17.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

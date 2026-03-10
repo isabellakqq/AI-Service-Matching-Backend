@@ -27,8 +27,8 @@ app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check
-app.get('/health', (req, res) => {
+// Health check - always responds
+app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
@@ -42,7 +42,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/users', usersRoutes);
 
 // 404 handler
-app.use((req, res) => {
+app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
@@ -52,12 +52,9 @@ app.use(errorHandler);
 // Start server
 const PORT = config.port;
 
-const HOST = config.nodeEnv === 'production' ? '0.0.0.0' : 'localhost';
-
-app.listen(PORT, HOST, () => {
-  console.log(`🚀 Server running on ${HOST}:${PORT}`);
-  console.log(`📍 Environment: ${config.nodeEnv}`);
-  console.log(`🔗 Health check: http://${HOST}:${PORT}/health`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on 0.0.0.0:${PORT}`);
+  console.log(`Environment: ${config.nodeEnv}`);
 });
 
 export default app;
