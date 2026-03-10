@@ -1,0 +1,11 @@
+[phases.setup]
+aptPkgs = ["openssl", "libssl-dev", "ca-certificates"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npx prisma generate", "npm run build", "npx prisma db push --accept-data-loss || echo 'DB push will run at start'"]
+
+[start]
+cmd = "npx prisma db push --accept-data-loss && node dist/server.js"
