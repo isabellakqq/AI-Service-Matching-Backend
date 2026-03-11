@@ -1,16 +1,16 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../db/client.js';
-import { authenticate, AuthRequest } from '../middleware/auth.js';
+import { authenticate, optionalAuthenticate, AuthRequest } from '../middleware/auth.js';
 import { aiMatchingService } from '../services/aiMatching.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
 const router = Router();
 
-// AI Chat endpoint
+// AI Chat endpoint (works with or without auth)
 router.post(
   '/ai',
-  authenticate,
+  optionalAuthenticate,
   [
     body('message').notEmpty().withMessage('Message is required'),
   ],
@@ -20,10 +20,6 @@ router.post(
       if (!errors.isEmpty()) {
         res.status(400).json({ errors: errors.array() });
         return;
-      }
-
-      if (!req.user) {
-        throw new ApiError(401, 'Unauthorized');
       }
 
       const { message, conversationHistory = [] } = req.body;
@@ -63,23 +59,25 @@ router.post(
         });
       }
 
-      // Save message to database
-      await prisma.message.create({
-        data: {
-          senderId: req.user.userId,
-          content: message,
-          type: 'TEXT',
-          isAI: false,
-        },
-      });
+      // Save messages to database only if user is authenticated
+      if (req.user) {
+        await prisma.message.create({
+          data: {
+            senderId: req.user.userId,
+            content: message,
+            type: 'TEXT',
+            isAI: false,
+          },
+        });
 
-      await prisma.message.create({
-        data: {
-          content: aiResponse,
-          type: 'TEXT',
-          isAI: true,
-        },
-      });
+        await prisma.message.create({
+          data: {
+            content: aiResponse,
+            type: 'TEXT',
+            isAI: true,
+          },
+        });
+      }
 
       res.json({
         response: aiResponse,
