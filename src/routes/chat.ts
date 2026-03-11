@@ -51,12 +51,14 @@ router.post(
         const scores = await aiMatchingService.getRecommendations(companions, preferences);
         recommendations = scores.slice(0, 3).map(s => {
           const companion = companions.find(c => c.id === s.companionId);
+          if (!companion) return null;
+          const { password, email, ...safe } = companion;
           return {
-            ...companion,
+            ...safe,
             matchScore: s.score,
             matchReasons: s.reasons,
           };
-        });
+        }).filter(Boolean);
       }
 
       // Save messages to database only if user is authenticated
