@@ -2,12 +2,13 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../db/client.js';
 import { authenticate, optionalAuthenticate, AuthRequest } from '../middleware/auth.js';
-import { aiMatchingService } from '../services/aiMatching.js';
+import { chatRequestHandler } from '../ai/chatHandler.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
 const router = Router();
 
-// AI Chat endpoint (works with or without auth)
+// AI Chat endpoint (modular pipeline)
+// Flow: Message -> Gemini Intent -> Provider Filter -> Ranking -> Response
 router.post(
   '/ai',
   optionalAuthenticate,
@@ -24,67 +25,60 @@ router.post(
 
       const { message, conversationHistory = [] } = req.body;
 
-      // Get companions for context
-      const companions = await prisma.companion.findMany({
-        where: { active: true },
-        include: {
-          activities: true,
-          matchingProfile: true,
-        },
-        take: 10,
-        orderBy: { rating: 'desc' },
-      });
-
-      // Generate AI response
-      const aiResponse = await aiMatchingService.generateChatResponse(
+      const result = await chatRequestHandler.handle({
         message,
         conversationHistory,
-        companions
-      );
+        userId: req.user?.userId,
+      });
 
-      // Extract preferences from user message
-      const preferences = await aiMatchingService.extractPreferences(message);
-
-      // Get recommendations if preferences found
-      let recommendations: any[] = [];
-      if (Object.keys(preferences).length > 0) {
-        const scores = await aiMatchingService.getRecommendations(companions, preferences);
-        recommendations = scores.slice(0, 3).map(s => {
-          const companion = companions.find(c => c.id === s.companionId);
-          if (!companion) return null;
-          const { password, email, ...safe } = companion;
-          return {
-            ...safe,
-            matchScore: s.score,
-            matchReasons: s.reasons,
-          };
-        }).filter(Boolean);
-      }
-
-      // Save messages to database only if user is authenticated
       if (req.user) {
         await prisma.message.create({
-          data: {
-            senderId: req.user.userId,
-            content: message,
-            type: 'TEXT',
-            isAI: false,
-          },
+          data: { senderId: req.user.userId, content: message, type: 'TEXT', isAI: false },
         });
-
         await prisma.message.create({
-          data: {
-            content: aiResponse,
-            type: 'TEXT',
-            isAI: true,
-          },
+          data: { content: result.response, type: 'TEXT', isAI: true },
         });
       }
 
       res.json({
-        response: aiResponse,
-        recommendations,
-        extractedPreferences: preferences,
+        response: result.response,
+        recommendations: result.recommendations,
+        extractedPreferences: result.extractedPreferences,
+        intent: result.intent,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Provider search endpoint (direct, no chat)
+router.post(
+  '/search',
+  optionalAuthenticate,
+  [
+    body('query').notEmpty().withMessage('Query is required'),
+  ],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({ errors: errors.array() });
+        return;
+      }
+
+      const { query, conversationHistory = [] } = req.body;
+
+      const result = await chatRequestHandler.handle({
+        message: query,
+        conversationHistory,
+        userId: req.user?.userId,
+      });
+
+      res.json({
+        providers: result.recommendations,
+        intent: result.intent,
+        total: result.recommendations.length,
       });
     } catch (error) {
       next(error);
@@ -95,12 +89,9 @@ router.post(
 // Get messages with a companion
 router.get('/messages/:companionId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    if (!req.user) {
-      throw new ApiError(401, 'Unauthorized');
-    }
+    if (!req.user) throw new ApiError(401, 'Unauthorized');
 
     const { companionId } = req.params;
-
     const messages = await prisma.message.findMany({
       where: {
         OR: [
@@ -133,12 +124,9 @@ router.post(
         return;
       }
 
-      if (!req.user) {
-        throw new ApiError(401, 'Unauthorized');
-      }
+      if (!req.user) throw new ApiError(401, 'Unauthorized');
 
       const { companionId, content } = req.body;
-
       const message = await prisma.message.create({
         data: {
           senderId: req.user.userId,
